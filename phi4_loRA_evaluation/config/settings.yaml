@@ -1,0 +1,200 @@
+# LangGraph Evaluation Agent Team Configuration
+
+# Model Configuration
+models:
+  judges:
+    deepseek:
+      model_name: "deepseek-r1:8b"
+      description: "推論・分析特化"
+      specialization: "reasoning_analysis"
+    qwen:
+      model_name: "qwen3:8b"  
+      description: "思考過程・理由明示"
+      specialization: "thought_process"
+    gemma:
+      model_name: "gemma3:12b"
+      description: "簡潔性チェック"
+      specialization: "conciseness"
+  
+  # Manager model for final integration
+  manager:
+    model_name: "gpt-oss:20b"
+    description: "高性能で最終判断"
+    specialization: "final_judgment"
+
+# Ollama Configuration
+ollama:
+  base_url: "http://ollama:11434"
+  timeout_seconds: 120
+  max_retries: 3
+  connection_timeout: 30
+
+# Evaluation Configuration
+evaluation:
+  # Parallel processing settings
+  max_concurrent_tasks: 1  # Resource management for RTX A5000 24GB
+  sequential_processing: true
+  
+  # Judge evaluation settings
+  judge_timeout: 120
+  judge_retries: 3
+  
+  # Manager integration settings  
+  manager_timeout: 90
+  manager_retries: 2
+  
+  # Consensus thresholds
+  strong_consensus_threshold: 0.67  # If >= 67% agreement, use consensus
+  weak_consensus_threshold: 0.34   # If < 34% agreement, uncertain
+  
+  # Performance targets
+  target_success_rate: 0.95  # 95% success rate target
+  max_processing_time: 1200  # 20 minutes max for 100 tasks
+
+# Evaluation Criteria (ordered by priority)
+criteria:
+  primary:
+    - name: "core_understanding"
+      weight: 0.30
+      description: "質問の核心理解（問いの本質を捉えているか）"
+      japanese: "核心理解"
+    - name: "conciseness"
+      weight: 0.25
+      description: "簡潔さと過不足のなさ（冗長でないか）"
+      japanese: "簡潔さ"
+  secondary:
+    - name: "factual_accuracy"
+      weight: 0.25
+      description: "正確性（事実・論理的誤りがないか）"
+      japanese: "正確性"
+    - name: "clarity"
+      weight: 0.20
+      description: "表現の整理度（明快な構成、読者に優しいか）"
+      japanese: "明快さ"
+
+# File Management
+files:
+  input:
+    directory: "input"
+    pattern: "result_benchmark_*.json"
+    required_fields:
+      - "task_id"
+      - "input"
+      - "base_output"
+      - "lora_output"
+      - "base_output_tokens"
+      - "lora_output_tokens"
+  
+  output:
+    directory: "output"
+    report_filename_pattern: "assessment_report_{timestamp}.json"
+    intermediate_save: true
+    backup_existing: true
+  
+  data:
+    directory: "data"
+    intermediate_filename_pattern: "intermediate_results_{timestamp}.json"
+    cleanup_after_days: 7
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_pattern: "evaluation_{timestamp}.log"
+  console_output: true
+  
+  # Component-specific logging levels
+  components:
+    judge_agents: "INFO"
+    manager_agent: "INFO"
+    evaluation_graph: "INFO"
+    data_manager: "INFO"
+    utils: "WARNING"
+
+# Resource Management
+resources:
+  # GPU memory management (for RTX A5000 24GB)
+  gpu:
+    total_memory_gb: 24
+    judge_memory_per_model_gb: 6
+    manager_memory_gb: 12
+    safety_buffer_gb: 2
+  
+  # CPU and system memory
+  cpu:
+    max_workers: 4
+    memory_limit_gb: 16
+  
+  # Performance monitoring
+  monitoring:
+    check_interval_seconds: 30
+    memory_warning_threshold: 0.85
+    memory_error_threshold: 0.95
+
+# Error Handling
+error_handling:
+  retry_strategy:
+    max_attempts: 3
+    base_wait_seconds: 2
+    max_wait_seconds: 10
+    exponential_backoff: true
+  
+  fallback_behavior:
+    on_judge_failure: "use_default_scores"
+    on_manager_failure: "use_consensus"
+    on_total_failure: "mark_uncertain"
+  
+  recovery:
+    continue_on_error: true
+    max_consecutive_errors: 5
+    error_threshold_percentage: 0.10  # 10% error rate threshold
+
+# Validation Rules
+validation:
+  benchmark_data:
+    min_tasks: 1
+    max_tasks: 10000
+    required_success_rate: 0.80  # At least 80% of original tasks must be successful
+  
+  evaluation_results:
+    min_judge_results: 1  # At least 1 judge must succeed
+    require_final_judgment: true
+    validate_score_ranges: true
+
+# Development and Testing
+development:
+  test_mode: false
+  sample_size: null  # null = use all tasks, integer = use first N tasks
+  dry_run: false
+  verbose_output: false
+  
+  # Mock settings for testing
+  mock_ollama: false
+  mock_responses: false
+  
+# Advanced Settings
+advanced:
+  # LangGraph settings
+  langgraph:
+    state_checkpointing: false
+    parallel_execution: true
+    error_propagation: "continue"
+  
+  # JSON parsing settings
+  json_parsing:
+    strict_mode: false
+    cleanup_attempts: 5
+    fallback_on_error: true
+  
+  # Performance optimization
+  optimization:
+    batch_processing: true
+    memory_efficient: true
+    early_stopping: false
+    
+  # Report customization
+  report:
+    include_raw_responses: false
+    include_intermediate_states: false
+    detailed_error_analysis: true
+    performance_metrics: true

@@ -1,0 +1,13 @@
+torch>=2.0.0
+unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git
+bitsandbytes>=0.41.0
+accelerate>=0.20.0
+xformers>=0.0.20
+peft>=0.4.0
+trl>=0.7.0
+triton>=2.0.0
+datasets>=3.4.1,<4.0.0
+huggingface_hub>=0.34.0
+transformers>=4.30.0
+sentencepiece
+protobuf

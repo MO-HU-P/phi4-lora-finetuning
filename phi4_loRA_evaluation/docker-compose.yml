@@ -1,0 +1,78 @@
+# version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=ollama
+    restart: unless-stopped
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - graph-network
+
+  model-init:
+    image: ollama/ollama:latest
+    container_name: model-init
+    depends_on:
+      - ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    restart: "no"
+    entrypoint: >
+      /bin/bash -c "
+      echo 'モデル初期化開始（軽量構成）...' &&
+      sleep 15 &&
+      ollama pull deepseek-r1:8b &&
+      echo 'deepseek-r1:8b ダウンロード完了' &&
+      ollama pull qwen3:8b &&
+      echo 'qwen3:8b ダウンロード完了' &&
+      ollama pull gemma3:12b &&
+      echo 'gemma3:12b ダウンロード完了' &&
+      ollama pull gpt-oss:20b &&
+      echo 'gpt-oss:20b ダウンロード完了' &&
+      echo 'すべてのモデル初期化完了（軽量構成）'"
+    networks:
+      - graph-network
+
+  langgraph-evaluator:
+    build: .
+    container_name: langgraph-evaluator
+    volumes:
+      - ./input:/app/input
+      - evaluation_data:/app/data
+      - ./output:/app/output
+      - ./config:/app/config
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - ollama
+      - model-init
+    command: python src/main.py --input-dir /app/input --output-dir /app/output --input "result_benchmark_*.json"
+    networks:
+      - graph-network
+
+networks:
+  graph-network:
+    driver: bridge
+
+volumes:
+  ollama_data:
+    driver: local
+  evaluation_data:
+    driver: local
