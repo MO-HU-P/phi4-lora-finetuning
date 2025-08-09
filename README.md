@@ -241,4 +241,3 @@ analyzer = BenchmarkAnalyzer('./output/assessment_report_20250101.json')
 
 - GPU環境が必要です
 - 初回実行時はモデルダウンロードに時間がかかります
-- `--max-concurrent > 3` はGPUメモリ不足を起こす可能性があります
